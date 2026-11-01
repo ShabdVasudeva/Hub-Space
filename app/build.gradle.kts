@@ -1,7 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+val rawGeminiApiKey: String = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+val geminiApiKey: String = if (rawGeminiApiKey.startsWith("\"") && rawGeminiApiKey.endsWith("\"")) {
+    rawGeminiApiKey
+} else {
+    "\"$rawGeminiApiKey\""
 }
 
 android {
@@ -18,6 +33,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GEMINI_API_KEY", geminiApiKey)
     }
 
     buildTypes {
@@ -33,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

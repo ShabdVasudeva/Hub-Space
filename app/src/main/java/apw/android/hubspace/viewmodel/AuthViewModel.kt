@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import apw.android.hubspace.auth.AuthRepository
 import apw.android.hubspace.auth.AuthResult
 import apw.android.hubspace.auth.signInWithGoogle
+import apw.android.hubspace.backend.GeminiApiClient
 import apw.android.hubspace.backend.HubSpaceRepository
 import apw.android.hubspace.backend.data.FeedItem
 import apw.android.hubspace.backend.data.FeedType
@@ -335,8 +336,6 @@ class AuthViewModel(
         viewModelScope.launch {
             daySummaryState = DaySummaryState.Loading
             try {
-                val model = Firebase.vertexAI.generativeModel("gemini-3.5-flash-lite")
-
                 val prompt = """
                 You are HubSpace AI, a smart team collaboration assistant. 
                 Summarize the user's day in exactly 2 encouraging, professional sentences. 
@@ -346,11 +345,10 @@ class AuthViewModel(
                 - Upcoming Event: ${if (eventTitle.isNotEmpty()) eventTitle else "None"}
                 - Latest Pinned Announcement: ${if (announcementTitle.isNotEmpty()) announcementTitle else "None"}
                 
-                Keep it action-oriented and engaging for a developer team.
+                Keep it action-oriented and engaging for a developer team. Do not add markdown bullet points.
             """.trimIndent()
 
-                val response = model.generateContent(prompt)
-                val summaryText = response.text?.trim() ?: "You're all caught up for today! Keep pushing."
+                val summaryText = GeminiApiClient.generateText(prompt)
 
                 val highlights = mutableListOf<SummaryHighlight>()
                 if (pendingTasksCount > 0) {
@@ -369,8 +367,8 @@ class AuthViewModel(
                     generatedAt = "Just now"
                 )
             } catch (e: Exception) {
-                Log.e("AuthVM", e.toString())
-                daySummaryState = DaySummaryState.Error("We couldn't generate your brief. Check your connection and try again.")
+                Log.e("AuthVM", "Error in summary generation", e)
+                daySummaryState = DaySummaryState.Error("We couldn't generate your brief. Please try again.")
             }
         }
     }
